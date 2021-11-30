@@ -28,7 +28,6 @@ class Cluster:
         self.__resources_calculation()
         self.cluster_vms()
         self.hosts: list = self.cluster_hosts()
-        self.show()
 
     def __authorization(self):
         """Авторизация и получение токена и тикета.
@@ -111,19 +110,9 @@ class Cluster:
             hosts.append(host)
         return hosts
 
-    def show(self):
-        print()
-        print(" Информация о кластере ".center(50, "-"))
-        print(f'Общая ОЗУ кластера = {round(self.max_mem / 1024 ** 3)} GB')
-        print(f'Занятая ОЗУ кластера = {int(self.mem / 1024 ** 3)} GB')
-        print(f'Средняя загрузка ОЗУ кластера = {round(self.mem_load * 100, 2)} %')
-        print(f'Количество CPU кластера = {self.maxcpu} шт.')
-        print(f'Средняя загрузка CPU кластера = {round(self.cpu_load * 100, 2)} %')
-        print(f'Количество хостов в кластере: {len(self.hosts)}')
-
 
 class Host:
-    def __init__(self, host_mem: int, host_mem_usage: int, host_cpu: int, host_cpu_usage: float, name: str, cluster):
+    def __init__(self, host_mem: int, host_mem_usage: int, host_cpu: int, host_cpu_usage: float, name, cluster_obj):
         self.name = name
         self.memory = host_mem  # byte
         self.mem_used = host_mem_usage  # byte
@@ -131,13 +120,12 @@ class Host:
         self.mem_free_real = host_mem - host_mem_usage
         self.cpu = host_cpu
         self.cpu_usage = host_cpu_usage  # от 0 до 1
-        self.cluster = cluster
+        self.cluster = cluster_obj
         self.free_cpu = self.host_free_cpu()
         self.free_memory = self.host_free_memory()
         self.vms = set()  # Все виртуальные машины и контейнеры хоста
         self.lxcs = set()  # Только контейнеры хоста
         self.host_vms()
-        self.show()
 
     def host_vms(self):
         """Выбираем виртуальные машины/контейнеры данного хоста.
@@ -187,22 +175,24 @@ class Host:
             sleep(10)
             url = f'{self.cluster.server}/api2/json/cluster/tasks'
             request = requests.get(url, cookies=payload, verify=False)
-            print(request.status_code)
-            tasks = request.json()['data']
-            for task in tasks:
-                if task['upid'] == pid:
-                    print(f'UPID: {pid[5:]}')
-                    print(f"PID: {task.get('pid')}")
-                    print(f'STATUS: {task.get("status")}')
-                    print("**************************")
-            for task in tasks:
-                if task['upid'] == pid and task.get('status') == 'OK':
-                    print(f'{pid} - Завершена!')
-                    status = False
-                    break
-                elif task['upid'] == pid and not task.get('pid'):
-                    print('Миграция...')
-                    break
+            if request.ok:
+                tasks = request.json()['data']
+                for task in tasks:
+                    if task['upid'] == pid:
+                        print(f'UPID: {pid[5:]}')
+                        print(f"PID: {task.get('pid')}")
+                        print(f'STATUS: {task.get("status")}')
+                        print("**************************")
+                for task in tasks:
+                    if task['upid'] == pid and task.get('status') == 'OK':
+                        print(f'{pid} - Завершена!')
+                        status = False
+                        break
+                    elif task['upid'] == pid and not task.get('pid'):
+                        print('Миграция...')
+                        break
+            else:
+                print(f'Что-то пошло не так во время миграции. Код ответа {request.status_code}')
 
     def host_free_memory(self):
         if self.mem_load >= THRESHOLD:
@@ -217,19 +207,6 @@ class Host:
         else:
             free_cpu = self.cpu * (THRESHOLD - self.cpu_usage)
         return free_cpu
-
-    def show(self):
-        print('*************************************************')
-        print(f'Хост -', self.name)
-        print(f'Общая ОЗУ хоста - {round(self.memory / 1024 ** 3)} GB')
-        print(f'Занятая ОЗУ хоста - {int(self.mem_used / 1024 ** 3)} GB')
-        print(f'Загрузка хоста - {round(self.mem_load * 100, 2)}%')
-        # print(f'Процессоров у хоста - {self.cpu} шт.')
-        # print(f'Загрузка CPU хоста - {round(self.cpu_usage * 100, 2)} %')
-        print(f'Виртуальные машины/контейнеры хоста:')
-        print(f'{len(self.vms)} шт.: {self.vms}')
-        # print(f'Свободно ядер ~ {int(self.free_cpu)}')
-        # print(f'Свободно памяти ~ {int(self.free_memory / 1024 ** 3)} GB')
 
 
 """Создаём кластер / Creating a cluster"""
@@ -247,12 +224,26 @@ def cluster_load_verification():
         sys.exit()
 
 
+def cluster_visualisation(cluster_obj):
+    cluster_table = PrettyTable()
+    columns = ['№', 'Сервер', 'ОЗУ (GB)', 'Загружено (GB)', 'Загрузка в %', 'Кол-во VM', 'Список VM']
+    cluster_table.add_column(columns[0], [number for number in range(1, len(cluster_obj.hosts) + 1)])
+    cluster_table.add_column(columns[1], [host.name for host in cluster_obj.hosts])
+    cluster_table.add_column(columns[2], [round(host.memory / 1024 ** 3) for host in cluster_obj.hosts])
+    cluster_table.add_column(columns[3], [round(host.mem_used / 1024 ** 3) for host in cluster_obj.hosts])
+    cluster_table.add_column(columns[4], [round(host.mem_load * 100, 2) for host in cluster_obj.hosts])
+    cluster_table.add_column(columns[5], [len(host.vms) for host in cluster_obj.hosts])
+    cluster_table.add_column(columns[6], [sorted(host.vms) if host.vms else "No online VM present" for host in cluster_obj.hosts])
+    cluster_table.align['Список VM'] = "l"
+    print(cluster_table)
+
+
 def host_selection() -> object:
     """Определяем хост, который нужно освободить.
        Determine the host that needs to be released."""
     hosts = {}
+    cluster_visualisation(cluster)
     for num, host in enumerate(cluster.hosts, start=1):
-        print(f'{num}) {host.name}')
         hosts[num] = host
     select = int(input(f'Введите № хоста, который нужно освободить: '))
     for num, host in hosts.items():
@@ -355,7 +346,7 @@ def main_job(host: object):
     def migration(recipients, vms):
         cl_d = deepcopy(recipients)
         vm_d = deepcopy(vms)
-        for _vm in vms:
+        for _ in vms:
             free_mem, recipient = max(zip(cl_d.values(), cl_d.keys()))
             vm_mem, vm = max(zip(vm_d.values(), vm_d.keys()))
             lxc_flag = True if vm in host.lxcs else False
@@ -379,5 +370,6 @@ lxc_verification(selected_host)
 vms_local_sources_verification(selected_host)
 main_job(selected_host)
 new_cluster = Cluster(server, auth)
+cluster_visualisation(new_cluster)
 print()
 print(f'{selected_host.name} освобождён!')
