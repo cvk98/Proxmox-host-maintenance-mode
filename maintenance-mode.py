@@ -3,6 +3,7 @@ import requests
 import urllib3
 from time import sleep
 from copy import deepcopy
+from prettytable import PrettyTable
 
 server = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
