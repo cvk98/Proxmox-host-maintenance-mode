@@ -1,17 +1,21 @@
 import sys
 import requests
 import urllib3
+from localisation import *
 from time import sleep
 from copy import deepcopy
+from tqdm import tqdm
 from prettytable import PrettyTable
 
 server = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
+message = EN  # Localisation (RU, EN, GR)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 THRESHOLD = 0.9  # Опасное пороговое значение нагрузки / Dangerous loading threshold
 RISK = 1.1  # 10% на увеличение загрузки хостов во время миграции / 10% to increase the load of hosts during migration
+
 
 payload = dict()
 header = dict()
@@ -35,12 +39,12 @@ class Cluster:
            Authorization and receipt of a token and ticket."""
         global payload, header
         url = f'{self.server}/api2/json/access/ticket'
-        print(f'Попытка авторизации...')
+        print(message[1])
         get_token = requests.post(url, data=self._data, verify=False)
         if get_token.ok:
-            print(f'Успешная авторизация. Код ответа: {get_token.status_code}')
+            print(message[2].format(get_token.status_code))
         else:
-            print(f'Ошибка авторизации. Код ответа: {get_token.status_code} ({get_token.reason})')
+            print(message[3], format(get_token.status_code, get_token.reason))
             sys.exit()
         payload = {'PVEAuthCookie': (get_token.json()['data']['ticket'])}
         header = {'CSRFPreventionToken': (get_token.json()['data']['CSRFPreventionToken'])}
@@ -53,13 +57,12 @@ class Cluster:
         self.cpu_load: float = 0  # от 0 до 1
         cluster_dict: dict = {}
         url = f'{self.server}/api2/json/cluster/resources'
-        print(f'Попытка получения информации о кластере...')
+        print(message[4])
         resources_request = requests.get(url, cookies=payload, verify=False)
         if resources_request.ok:
-            print(f'Информация о кластере получена. Код ответа: {resources_request.status_code}')
+            print(message[5].format(resources_request.status_code))
         else:
-            print(f'Не удалось получить информацию о кластере. Код ответа: {resources_request.status_code} /'
-                  f'({resources_request.reason})')
+            print(message[6].format(resources_request.status_code, resources_request.reason))
             sys.exit()
         self.cluster_information = (resources_request.json()['data'])
         del resources_request
@@ -77,14 +80,14 @@ class Cluster:
         self.mem_load: float = self.mem / self.max_mem  # Загрузка памяти кластера
         self.cpu_load: float = cpu_load_temp / count  # Загрузка процессоров кластер
         if THRESHOLD <= self.mem_load < 1:
-            print(f'Слишком высокая загрузка процессоров кластера')
-            print(f'Миграция невозможна. Срочно примите мары!')
+            print(message[7])
+            print(message[8])
             sys.exit()
         elif self.mem_load > 1:
-            print(f"+++Загрузка памяти кластера не может быть больше 1, а тут {self.mem_load}!+++")
+            print(message[9].format(self.mem_load))
             raise ValueError
         if self.cpu_load > 1:
-            print(f"+++Загрузка CPU кластера не может быть больше 1, а тут {self.cpu_load}!+++")
+            print(message[10].format(self.cpu_load))
             raise ValueError
         self.free_mem = self.max_mem - self.mem
         self.free_cpu = (THRESHOLD - self.cpu_load) * self.maxcpu
@@ -99,7 +102,7 @@ class Cluster:
                 self.vms[_["vmid"]] = _["name"], _["maxmem"], _["mem"], _["maxcpu"], _["cpu"], _["node"]
                 self.lxcs[_["vmid"]] = _["name"], _["maxmem"], _["mem"], _["maxcpu"], _["cpu"], _["node"]
         if not self.vms and not self.lxcs:
-            print(f'Нет виртуальных машин/контейнеров или ошибка в методе Cluster.cluster_vms')
+            print(message[11])
             sys.exit()
 
     def cluster_hosts(self):
@@ -142,7 +145,7 @@ class Host:
     def vm_local_source(self):
         not_migratable_vm = set()
         vm_only = self.vms - self.lxcs
-        for vm in vm_only:
+        for vm in tqdm(vm_only):
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/qemu/{vm}/migrate'
             check_request = requests.get(url, cookies=payload, verify=False)
             local_disk = (check_request.json()['data']['local_disks'])
@@ -157,7 +160,7 @@ class Host:
 
     def vm_migration(self, recipient, vm, lxc_flag=False):
         print()
-        print(f'Запрос на миграцию {vm}')
+        print(message[12].format(vm))
         if lxc_flag:
             options = {'target': recipient, 'restart': 1}
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/lxc/{vm}/migrate'
@@ -166,10 +169,10 @@ class Host:
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/qemu/{vm}/migrate'
         job = requests.post(url, cookies=payload, headers=header, data=options, verify=False)
         if job.ok:
-            print('Миграция...')
+            print(message[13])
             pid = job.json()['data']
         else:
-            print(f'Ошибка при запросе миграции VM {vm} с {self.name} на {recipient}. Проверьте запрос.')
+            print(message[14].format(vm, self.name, recipient))
             sys.exit()
         status = True
         while status:
@@ -186,14 +189,14 @@ class Host:
                         print("**************************")
                 for task in tasks:
                     if task['upid'] == pid and task.get('status') == 'OK':
-                        print(f'{pid} - Завершена!')
+                        print(message[15])
                         status = False
                         break
                     elif task['upid'] == pid and not task.get('pid'):
-                        print('Миграция...')
+                        print(message[13])
                         break
             else:
-                print(f'Что-то пошло не так во время миграции. Код ответа {request.status_code}')
+                print(message[16].format(request.status_code))
 
     def host_free_memory(self):
         if self.mem_load >= THRESHOLD:
@@ -210,32 +213,29 @@ class Host:
         return free_cpu
 
 
-"""Создаём кластер / Creating a cluster"""
-cluster = Cluster(server, auth)
-
-
 def cluster_load_verification():
     """Проверяем загрузку ОЗУ кластера.
        Checking the cluster RAM load."""
-    assert 0 < cluster.mem_load < 1, f'(RU) Загрузка ОЗУ кластера должна быть в диапазоне от 0 до 1 / ' \
-                                     f'(EN) The cluster RAM load should be in the range from 0 to 1'
+    assert 0 < cluster.mem_load < 1, message[17]
     if cluster.mem_load >= THRESHOLD:
-        print(f'(RU) Загрузка кластера {round(cluster.mem_load * 100, 2)} %. Невозможно автоматически освободить хост.')
+        print(message[18].format(round(cluster.mem_load * 100, 2)))
         print(f'(EN) Cluster load is {round(cluster.mem_load * 100, 2)} %. The host cannot be released automatically.')
         sys.exit()
 
 
 def cluster_visualisation(cluster_obj):
     cluster_table = PrettyTable()
-    columns = ['№', 'Сервер', 'ОЗУ (GB)', 'Загружено (GB)', 'Загрузка в %', 'Кол-во VM', 'Список VM']
+    columns = message[19]
     cluster_table.add_column(columns[0], [number for number in range(1, len(cluster_obj.hosts) + 1)])
     cluster_table.add_column(columns[1], [host.name for host in cluster_obj.hosts])
     cluster_table.add_column(columns[2], [round(host.memory / 1024 ** 3) for host in cluster_obj.hosts])
     cluster_table.add_column(columns[3], [round(host.mem_used / 1024 ** 3) for host in cluster_obj.hosts])
     cluster_table.add_column(columns[4], [round(host.mem_load * 100, 2) for host in cluster_obj.hosts])
     cluster_table.add_column(columns[5], [len(host.vms) for host in cluster_obj.hosts])
-    cluster_table.add_column(columns[6], [sorted(host.vms) if host.vms else "No online VM present" for host in cluster_obj.hosts])
-    cluster_table.align['Список VM'] = "l"
+    cluster_table.add_column(columns[6], [sorted(host.vms) if host.vms else message[20] for host in cluster_obj.hosts])
+    cluster_table.align[message[21]] = "l"
+    from prettytable import DOUBLE_BORDER
+    cluster_table.set_style(DOUBLE_BORDER)
     print(cluster_table)
 
 
@@ -246,14 +246,13 @@ def host_selection() -> object:
     cluster_visualisation(cluster)
     for num, host in enumerate(cluster.hosts, start=1):
         hosts[num] = host
-    select = int(input(f'Введите № хоста, который нужно освободить: '))
+    select = int(input(message[22]))
     for num, host in hosts.items():
         if num == select:
-            print(f'Выбран {host.name}')
+            print(message[23].format(host.name))
             return host
     else:
-        print(f'(RU) Неверный ввод. Повторите попытку')
-        print(f'(EN) Invalid input. Try again')
+        print(message[24])
         sleep(1)
         return host_selection()
 
@@ -263,12 +262,10 @@ def maintenance_possibility(host: object):
        Checking whether there are enough free resources in the cluster to host virtual machines from the host being
        released."""
     if cluster.free_mem - host.mem_free_real * THRESHOLD < host.mem_used * RISK:
-        print(f'(RU) Недостаточно свободного ОЗУ кластера чтобы освободить {host.name}')
-        print(f'(EN) There are not enough free cluster memory to free up the {host.name}')
+        print(message[25].format(host.name))
         sys.exit()
     elif cluster.free_cpu < host.cpu * host.cpu_usage * RISK:
-        print(f'(RU) Недостаточно свободных процессоров кластера чтобы освободить {host.name}')
-        print(f'(EN) There are not enough free cluster CPU to free up the {host.name}')
+        print(message[26].format(host.name))
         sys.exit()
     else:
         pass
@@ -279,17 +276,14 @@ def lxc_verification(host: object):
        Checking the presence of the container on the host being released."""
     if host.lxcs:
         print('*******************************************************************************************************')
-        print(f'(RU) Данный хост содержит контейнеры. Нужно иметь ввиду что контейнеры при миграции перезагружаются')
-        print(f'(EN) This host contains containers. It should be borne in mind that containers are restarted during '
-              f'migration')
+        print(message[27])
         print('*******************************************************************************************************')
-        print(f'LXCs: {host.lxcs}')
-        choice = input('Напишите "YES" для продолжения / Type "YES" to continue: ')
+        print(message[28].format(host.lxcs))
+        choice = input(message[29])
         if choice == "YES":
             pass
         else:
-            print(f'(RU) Перенесите контейнеры вручную и перезапустите скрипт')
-            print(f'(EN) Move the containers manually and restart the script')
+            print(message[30])
             sys.exit()
     pass
 
@@ -298,20 +292,15 @@ def vms_local_sources_verification(host: object):
     """Проверяем наличие локальных ресурсов у виртуальных машин, препятствующих миграции.
        Checking the availability of local resources for virtual machines that prevent migration."""
     print()
-    print(f'(RU) Проверяем наличие локальных ресурсов у VM...')
-    print(f'(EN) Checking the availability of local resources from the VM...')
-    print()
+    print(message[31])
     check: set = host.vm_local_source()
     if check:
-        print(f'(RU) Эти VM {check} имеют локальные ресурсы. Это могут быть CD-ROM или локальные диски,')
-        print(f'размещенные на хосте. В первом случае нужно отключить диск, во втором - перенести машину')
-        print(f'вручную указав новое расположение для дисков. Затем перезапустите скрипт.')
-        print('-------------------------------------------------------------------------------------------------------')
-        print(f'(EN) These VMs {check} have local resources. These can be CD-ROMs or local disks hosted on the host.')
-        print(f'In the first case, you need to disconnect the disk, in the second case, you need to manually move')
-        print(f'the machine by specifying a new location for the disks. Then restart the script.')
+        print(message[31])
+        print(message[32].format(check))
+        print(message[33])
         sys.exit()
-    pass
+    else:
+        print()
 
 
 def main_job(host: object):
@@ -330,18 +319,16 @@ def main_job(host: object):
             free_mem, recipient = max(zip(cl_d.values(), cl_d.keys()))
             vm_mem, vm = max(zip(vm_d.values(), vm_d.keys()))
             if free_mem > vm_mem:
-                print(f'(RU) Производим проверочные вычисления для VM {vm} и реципиента {recipient}')
-                print(f'(EN) Verification calculations are performed for the VM {vm} and recipient {recipient}')
+                print(message[35].format(vm, recipient))
                 cl_d[recipient] = cl_d[recipient] - vm_mem
                 del vm_d[vm]
             else:
-                print(f'(RU) Виртуальная машина {vm} не помещается на максимально свободный хост {recipient}')
+                print(message[36].format(vm, recipient))
                 sys.exit()
         else:
-            print(f'(RU) Всё готово для начала миграции VM!')
-            print(f'(EN) Everything is ready to start VM migration!')
+            print(message[37])
             for i in range(5, 0, -1):
-                print(f'Начинаем через / Start in {i}...')
+                print(message[38].format(i))
                 sleep(1)
 
     def migration(recipients, vms):
@@ -352,25 +339,26 @@ def main_job(host: object):
             vm_mem, vm = max(zip(vm_d.values(), vm_d.keys()))
             lxc_flag = True if vm in host.lxcs else False
             if free_mem > vm_mem:
-                print(f'Мигрируем VM {vm} на {recipient}')
+                print(message[39].format(vm, recipient))
                 host.vm_migration(recipient, vm, lxc_flag)
                 cl_d[recipient] = cl_d[recipient] - vm_mem
                 del vm_d[vm]
             else:
-                print(f'Миграция {vm} не завершена, проверьте состояние хоста.')
+                print(message[36].format(vm))
                 sys.exit()
 
     test(recipients_dict, migrating_vm_dict)
     migration(recipients_dict, migrating_vm_dict)
 
 
+cluster = Cluster(server_url, auth)
 cluster_load_verification()
 selected_host = host_selection()
 maintenance_possibility(selected_host)
 lxc_verification(selected_host)
 vms_local_sources_verification(selected_host)
 main_job(selected_host)
-new_cluster = Cluster(server, auth)
+new_cluster = Cluster(server_url, auth)
 cluster_visualisation(new_cluster)
 print()
-print(f'{selected_host.name} освобождён!')
+print(message[41].format(selected_host.name))
