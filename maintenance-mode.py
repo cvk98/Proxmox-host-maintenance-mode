@@ -9,7 +9,7 @@ from prettytable import PrettyTable
 
 server = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
-message = EN  # Localisation (RU, EN, GR)
+message = EN  # Localisation (RU, EN, GE)
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
