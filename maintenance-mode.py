@@ -197,7 +197,7 @@ class Host:
                         print("**************************")
                 for task in tasks:
                     if task['upid'] == pid and task.get('status') == 'OK':
-                        print(message[15])
+                        print(message[15].format(pid[5:]))
                         status = False
                         break
                     elif task['upid'] == pid and not task.get('pid'):
