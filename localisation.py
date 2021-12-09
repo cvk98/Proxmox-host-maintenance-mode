@@ -82,7 +82,7 @@ EN = {1: 'Authorization attempt...',
       40: 'Migration {} is not completed, check the status of the host.',
       41: '{} released!'}
 
-GE = {1: 'Versuch der Autorisierung...',
+GR = {1: 'Versuch der Autorisierung...',
       2: 'Erfolgreiche Autorisierung. Antwortcode: {}',
       3: 'Autorisierungsfehler. Antwortcode: {} ({})',
       4: 'Es wurde versucht, Informationen über den Cluster zu erhalten...',
