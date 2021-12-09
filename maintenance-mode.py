@@ -1,21 +1,23 @@
 import sys
 import requests
 import urllib3
-from localisation import *
+from threading import Thread
 from time import sleep
 from copy import deepcopy
-from tqdm import tqdm
 from prettytable import PrettyTable
+from localisation import *
 
 server = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
-message = EN  # Localisation (RU, EN, GE)
+message = EN  # Localisation (RU, EN, GR)
+
+# server = "https://10.101.21.22:8006"
+# auth = {'username': "root@pam", 'password': "GlosaV6443359"}
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 THRESHOLD = 0.9  # Опасное пороговое значение нагрузки / Dangerous loading threshold
 RISK = 1.1  # 10% на увеличение загрузки хостов во время миграции / 10% to increase the load of hosts during migration
-
 
 payload = dict()
 header = dict()
@@ -143,14 +145,23 @@ class Host:
                 self.lxcs.add(lxc)
 
     def vm_local_source(self):
+        thread_list = []
         not_migratable_vm = set()
         vm_only = self.vms - self.lxcs
-        for vm in tqdm(vm_only):
+
+        def request():
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/qemu/{vm}/migrate'
             check_request = requests.get(url, cookies=payload, verify=False)
             local_disk = (check_request.json()['data']['local_disks'])
             if local_disk:
                 not_migratable_vm.add(vm)
+        for vm in vm_only:
+            t = Thread(target=request(), name=str(vm))
+            t.start()
+            thread_list.append(t)
+        else:
+            for t in thread_list:
+                t.join()
         return not_migratable_vm
 
     # def test_vm_migration(self, recipient, vm, lxc_flag=False):
