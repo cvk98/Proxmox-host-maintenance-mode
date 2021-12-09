@@ -303,9 +303,9 @@ def vms_local_sources_verification(host: object):
     print(message[31])
     check: set = host.vm_local_source()
     if check:
-        print()
         print(message[32].format(check))
         print(message[33])
+        print(message[34])
         sys.exit()
     else:
         print()
