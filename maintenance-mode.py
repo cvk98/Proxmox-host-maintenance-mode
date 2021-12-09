@@ -11,9 +11,6 @@ server = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
 message = EN  # Localisation (RU, EN, GR)
 
-# server = "https://10.101.21.22:8006"
-# auth = {'username': "root@pam", 'password': "GlosaV6443359"}
-
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 THRESHOLD = 0.9  # Опасное пороговое значение нагрузки / Dangerous loading threshold
