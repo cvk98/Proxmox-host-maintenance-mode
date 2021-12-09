@@ -38,7 +38,8 @@ RU = {1: 'Попытка авторизации...',
       38: 'Начинаем через {}...',
       39: 'Мигрируем VM {} на {}',
       40: 'Миграция {} не завершена, проверьте состояние хоста.',
-      41: '{} освобождён!'}
+      41: '{} освобождён!',
+      42: 'Проверяем '}
 
 EN = {1: 'Authorization attempt...',
       2: 'Successful authorization. Response code: {}',
@@ -80,9 +81,10 @@ EN = {1: 'Authorization attempt...',
       38: 'Starting in {}...',
       39: 'Migrating VM {} to {}',
       40: 'Migration {} is not completed, check the status of the host.',
-      41: '{} released!'}
+      41: '{} released!',
+      42: 'Checking '}
 
-GR = {1: 'Versuch der Autorisierung...',
+GE = {1: 'Versuch der Autorisierung...',
       2: 'Erfolgreiche Autorisierung. Antwortcode: {}',
       3: 'Autorisierungsfehler. Antwortcode: {} ({})',
       4: 'Es wurde versucht, Informationen über den Cluster zu erhalten...',
@@ -122,7 +124,8 @@ GR = {1: 'Versuch der Autorisierung...',
       38: 'Wir beginnen durch {}...',
       39: 'VM {} nach {} migrieren',
       40: 'Die Migration {} ist nicht abgeschlossen, überprüfen Sie den Hoststatus.',
-      41: '{} befreit!'}
+      41: '{} befreit!',
+      42: 'Überprüfung '}
 
 if __name__ == "__main__":
       pass
