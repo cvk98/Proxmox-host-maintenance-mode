@@ -153,7 +153,7 @@ class Host:
             if local_disk:
                 not_migratable_vm.add(vm)
         print(message[42], end='')
-        for vm in vm_only:
+        for vm in sorted(vm_only):
             t = Thread(target=request(), name=str(vm))
             t.start()
             print('{}'.format(str(vm)), end='|')
