@@ -285,9 +285,9 @@ def lxc_verification(host: object):
     """Проверяем наличие контейнеров на освобождаемом хосте.
        Checking the presence of the container on the host being released."""
     if host.lxcs:
-        print('*******************************************************************************************************')
+        print('*' * len(message[27]))
         print(message[27])
-        print('*******************************************************************************************************')
+        print('*' * len(message[27]))
         print(message[28].format(host.lxcs))
         choice = input(message[29])
         if choice == "YES":
