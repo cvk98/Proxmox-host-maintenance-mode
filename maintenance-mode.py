@@ -1,6 +1,7 @@
 import sys
 import requests
 import urllib3
+import pyttsx3
 from threading import Thread
 from time import sleep
 from copy import deepcopy
@@ -152,6 +153,7 @@ class Host:
             local_disk = (check_request.json()['data']['local_disks'])
             if local_disk:
                 not_migratable_vm.add(vm)
+
         print(message[42], end='')
         for vm in sorted(vm_only):
             t = Thread(target=request(), name=str(vm))
@@ -185,28 +187,23 @@ class Host:
             print(message[14].format(vm, self.name, recipient))
             sys.exit()
         status = True
+        timer: int = 0
         while status:
+            timer += 10
             sleep(10)
-            url = f'{self.cluster.server}/api2/json/cluster/tasks'
+            url = f'{self.cluster.server}/api2/json/nodes/{recipient}/qemu'
             request = requests.get(url, cookies=payload, verify=False)
-            if request.ok:
-                tasks = request.json()['data']
-                for task in tasks:
-                    if task['upid'] == pid:
-                        print(f'UPID: {pid[5:]}')
-                        print(f"PID: {task.get('pid')}")
-                        print(f'STATUS: {task.get("status")}')
-                        print("**************************")
-                for task in tasks:
-                    if task['upid'] == pid and task.get('status') == 'OK':
-                        print(message[15].format(pid[5:]))
-                        status = False
-                        break
-                    elif task['upid'] == pid and not task.get('pid'):
-                        print(message[13])
-                        break
+            running_vms = request.json()['data']
+            for _ in running_vms:
+                if _['vmid'] == vm and _['status'] == 'running':
+                    print(f'{pid} - Завершена!')
+                    status = False
+                    break
+                elif _['vmid'] == vm and _['status'] != 'running':
+                    print(message[16].format(request.status_code))
+                    sys.exit(1)
             else:
-                print(message[16].format(request.status_code))
+                print(message[16].format(vm, timer))
 
     def host_free_memory(self):
         if self.mem_load >= THRESHOLD:
@@ -221,6 +218,13 @@ class Host:
         else:
             free_cpu = self.cpu * (THRESHOLD - self.cpu_usage)
         return free_cpu
+
+
+def voice_acting(text):
+    tts = pyttsx3.init()
+    # tts.setProperty('voice', 'en')
+    tts.say(text)
+    tts.runAndWait()
 
 
 def cluster_load_verification():
@@ -254,6 +258,7 @@ def host_selection() -> object:
        Determine the host that needs to be released."""
     hosts = {}
     cluster_visualisation(cluster)
+    voice_acting(message[101])
     for num, host in enumerate(cluster.hosts, start=1):
         hosts[num] = host
     select = int(input(message[22]))
@@ -306,7 +311,7 @@ def vms_local_sources_verification(host: object):
     check: set = host.vm_local_source()
     if check:
         print()
-        print(message[32].format(check))
+        print(message[32].format(tuple(check)))
         print(message[33])
         print(message[34])
         sys.exit()
@@ -373,3 +378,4 @@ new_cluster = Cluster(server_url, auth)
 cluster_visualisation(new_cluster)
 print()
 print(message[41].format(selected_host.name))
+voice_acting(message[41].format(selected_host.name))
