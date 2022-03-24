@@ -11,7 +11,8 @@ After:
 ![2](https://user-images.githubusercontent.com/88323643/145380094-86b74535-5f42-4a5f-bcc6-b0014b693619.png)
 
 
-Changelog: \n
+Changelog:
+
 **0.6** :
 Redesigned the mechanism for determining the end of VM migration.
 Added voice notification (not tested on Linux server versions).
