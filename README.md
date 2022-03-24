@@ -13,7 +13,7 @@ After:
 
 Changelog:
 
-**0.6**
+**0.6** (24.03.2022)
 
 Redesigned the mechanism for determining the end of VM migration.
 
