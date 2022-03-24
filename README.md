@@ -12,6 +12,6 @@ After:
 
 
 Changelog:
-**0.6** 
-Redesigned the mechanism for determining the end of VM migration
-Added voice notification (not tested on Linux server versions)
+**0.6** :
+Redesigned the mechanism for determining the end of VM migration.
+Added voice notification (not tested on Linux server versions).
