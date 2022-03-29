@@ -1,4 +1,4 @@
-# Proxmox-host-maintenance-mode v0.6
+# Proxmox-host-maintenance-mode v0.6.1
 
 (EN) This script allows you to prepare the Proxmox host for maintenance. After the launch, you are prompted to select a host. Next, checks are carried out for the availability of free cluster resources, the presence of containers (lxc), as they are rebooted during migration. It also checks the availability of local resources for the VM, because they do not allow the VM to migrate. If all the checks are passed, the migration begins. The result should be a completely free host. The larger the cluster and the more free resources and the smaller the size of the virtual machines, the greater the probability of a positive outcome. It is not difficult to create conditions under which the script will not be able to work correctly. But it works correctly on a large cluster.
 Sorry for the Google translate)
