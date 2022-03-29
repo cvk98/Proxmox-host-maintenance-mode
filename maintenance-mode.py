@@ -171,7 +171,6 @@ class Host:
     #     print(f'Процесс миграции {vm}...')
 
     def vm_migration(self, recipient, vm, lxc_flag=False):
-        print()
         print(message[12].format(vm))
         if lxc_flag:
             options = {'target': recipient, 'restart': 1}
@@ -181,7 +180,7 @@ class Host:
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/qemu/{vm}/migrate'
         job = requests.post(url, cookies=payload, headers=header, data=options, verify=False)
         if job.ok:
-            print(message[13])
+            print(message[43])
             pid = job.json()['data']
         else:
             print(message[14].format(vm, self.name, recipient))
@@ -203,7 +202,7 @@ class Host:
                     print(message[16].format(request.status_code))
                     sys.exit(1)
             else:
-                print(message[16].format(vm, timer))
+                print(message[13].format(vm, timer))
 
     def host_free_memory(self):
         if self.mem_load >= THRESHOLD:
@@ -233,7 +232,7 @@ def cluster_load_verification():
     assert 0 < cluster.mem_load < 1, message[17]
     if cluster.mem_load >= THRESHOLD:
         print(message[18].format(round(cluster.mem_load * 100, 2)))
-        print(f'(EN) Cluster load is {round(cluster.mem_load * 100, 2)} %. The host cannot be released automatically.')
+        print(f'Cluster load is {round(cluster.mem_load * 100, 2)} %. The host cannot be released automatically.')
         sys.exit()
 
 
@@ -355,6 +354,7 @@ def main_job(host: object):
             vm_mem, vm = max(zip(vm_d.values(), vm_d.keys()))
             lxc_flag = True if vm in host.lxcs else False
             if free_mem > vm_mem:
+                print()
                 print(message[39].format(vm, recipient))
                 host.vm_migration(recipient, vm, lxc_flag)
                 cl_d[recipient] = cl_d[recipient] - vm_mem
