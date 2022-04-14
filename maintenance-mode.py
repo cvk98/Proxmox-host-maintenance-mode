@@ -151,7 +151,8 @@ class Host:
             url = f'{self.cluster.server}/api2/json/nodes/{self.name}/qemu/{vm}/migrate'
             check_request = requests.get(url, cookies=payload, verify=False)
             local_disk = (check_request.json()['data']['local_disks'])
-            if local_disk:
+            local_resources = (check_request.json()['data']['local_resources'])
+            if local_disk or local_resources:
                 not_migratable_vm.add(vm)
 
         print(message[42], end='')
