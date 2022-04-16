@@ -132,6 +132,3 @@ GR = {1: 'Versuch der Autorisierung...',
       42: 'Überprüfung ',
       43: 'Migration...',
       101: 'Seien Sie vorsichtig bei der Auswahl einer Hostnummer'}
-
-if __name__ == "__main__":
-      pass

@@ -17,8 +17,8 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 THRESHOLD = 0.9  # Опасное пороговое значение нагрузки / Dangerous loading threshold
 RISK = 1.1  # 10% на увеличение загрузки хостов во время миграции / 10% to increase the load of hosts during migration
 
-payload = dict()
-header = dict()
+payload = {}
+header = {}
 
 
 class Cluster:
@@ -199,25 +199,25 @@ class Host:
                     print(f'{pid} - Завершена!')
                     status = False
                     break
-                elif _['vmid'] == vm and _['status'] != 'running':
+                elif _['vmid'] == vm:
                     print(message[16].format(request.status_code))
                     sys.exit(1)
             else:
                 print(message[13].format(vm, timer))
 
     def host_free_memory(self):
-        if self.mem_load >= THRESHOLD:
-            free_memory = 0
-        else:
-            free_memory = int(self.memory * (THRESHOLD - self.mem_load))
-        return int(free_memory)
+        return (
+            0
+            if self.mem_load >= THRESHOLD
+            else int(self.memory * (THRESHOLD - self.mem_load))
+        )
 
     def host_free_cpu(self):
-        if self.cpu_usage >= THRESHOLD:
-            free_cpu = 0
-        else:
-            free_cpu = self.cpu * (THRESHOLD - self.cpu_usage)
-        return free_cpu
+        return (
+            0
+            if self.cpu_usage >= THRESHOLD
+            else self.cpu * (THRESHOLD - self.cpu_usage)
+        )
 
 
 def voice_acting(text):
@@ -240,7 +240,10 @@ def cluster_load_verification():
 def cluster_visualisation(cluster_obj):
     cluster_table = PrettyTable()
     columns = message[19]
-    cluster_table.add_column(columns[0], [number for number in range(1, len(cluster_obj.hosts) + 1)])
+    cluster_table.add_column(
+        columns[0], list(range(1, len(cluster_obj.hosts) + 1))
+    )
+
     cluster_table.add_column(columns[1], [host.name for host in cluster_obj.hosts])
     cluster_table.add_column(columns[2], [round(host.memory / 1024 ** 3) for host in cluster_obj.hosts])
     cluster_table.add_column(columns[3], [round(host.mem_used / 1024 ** 3) for host in cluster_obj.hosts])
@@ -256,20 +259,17 @@ def cluster_visualisation(cluster_obj):
 def host_selection() -> object:
     """Определяем хост, который нужно освободить.
        Determine the host that needs to be released."""
-    hosts = {}
     cluster_visualisation(cluster)
     voice_acting(message[101])
-    for num, host in enumerate(cluster.hosts, start=1):
-        hosts[num] = host
+    hosts = dict(enumerate(cluster.hosts, start=1))
     select = int(input(message[22]))
     for num, host in hosts.items():
         if num == select:
             print(message[23].format(host.name))
             return host
-    else:
-        print(message[24])
-        sleep(1)
-        return host_selection()
+    print(message[24])
+    sleep(1)
+    return host_selection()
 
 
 def maintenance_possibility(host: object):
@@ -282,25 +282,21 @@ def maintenance_possibility(host: object):
     elif cluster.free_cpu < host.cpu * host.cpu_usage * RISK:
         print(message[26].format(host.name))
         sys.exit()
-    else:
-        pass
 
 
 def lxc_verification(host: object):
     """Проверяем наличие контейнеров на освобождаемом хосте.
        Checking the presence of the container on the host being released."""
-    if host.lxcs:
-        print('*' * len(message[27]))
-        print(message[27])
-        print('*' * len(message[27]))
-        print(message[28].format(host.lxcs))
-        choice = input(message[29])
-        if choice == "YES":
-            pass
-        else:
-            print(message[30])
-            sys.exit()
-    pass
+    if not host.lxcs:
+        return
+    print('*' * len(message[27]))
+    print(message[27])
+    print('*' * len(message[27]))
+    print(message[28].format(host.lxcs))
+    choice = input(message[29])
+    if choice != "YES":
+        print(message[30])
+        sys.exit()
 
 
 def vms_local_sources_verification(host: object):
@@ -341,11 +337,10 @@ def main_job(host: object):
             else:
                 print(message[36].format(vm, recipient))
                 sys.exit()
-        else:
-            print(message[37])
-            for i in range(5, 0, -1):
-                print(message[38].format(i))
-                sleep(1)
+        print(message[37])
+        for i in range(5, 0, -1):
+            print(message[38].format(i))
+            sleep(1)
 
     def migration(recipients, vms):
         cl_d = deepcopy(recipients)
@@ -353,10 +348,10 @@ def main_job(host: object):
         for _ in vms:
             free_mem, recipient = max(zip(cl_d.values(), cl_d.keys()))
             vm_mem, vm = max(zip(vm_d.values(), vm_d.keys()))
-            lxc_flag = True if vm in host.lxcs else False
             if free_mem > vm_mem:
                 print()
                 print(message[39].format(vm, recipient))
+                lxc_flag = vm in host.lxcs
                 host.vm_migration(recipient, vm, lxc_flag)
                 cl_d[recipient] = cl_d[recipient] - vm_mem
                 del vm_d[vm]
