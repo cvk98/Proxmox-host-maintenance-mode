@@ -19,5 +19,5 @@ Changelog:
 1.Redesigned the mechanism for determining the end of VM migration.
 2.Added voice notification (not tested on Linux server versions).
 
-# Tested on:
+# Running the script is tested on:
 1. PyCharm 2021+, Python 3.10+, Win10
