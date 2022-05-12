@@ -16,7 +16,7 @@ Changelog:
 
 **0.6** (24.03.2022)
 
-1.Redesigned the mechanism for determining the end of VM migration.
+1.Redesigned the mechanism for determining the end of VM migration.  
 2.Added voice notification (not tested on Linux server versions).
 
 # Running the script is tested on:
