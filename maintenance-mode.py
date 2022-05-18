@@ -69,6 +69,8 @@ class Cluster:
         count = 0
         cpu_load_temp = 0
         for _ in self.cluster_information:
+            if _["type"] == "pool":
+                continue
             if _["status"] == "online":
                 count += 1
                 self.max_mem += int(_["maxmem"])  # Всего ОЗУ в кластере
