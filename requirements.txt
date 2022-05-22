@@ -1,0 +1,8 @@
+certifi==2021.10.8
+charset-normalizer==2.0.12
+idna==3.3
+prettytable==3.3.0
+pyttsx3==2.90
+requests==2.27.1
+urllib3==1.26.9
+wcwidth==0.2.5
