@@ -235,7 +235,6 @@ def cluster_load_verification():
     assert 0 < cluster.mem_load < 1, message[17]
     if cluster.mem_load >= THRESHOLD:
         print(message[18].format(round(cluster.mem_load * 100, 2)))
-        print(f'Cluster load is {round(cluster.mem_load * 100, 2)} %. The host cannot be released automatically.')
         sys.exit()
 
 
