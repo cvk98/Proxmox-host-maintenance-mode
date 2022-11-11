@@ -8,7 +8,7 @@ from copy import deepcopy
 from prettytable import PrettyTable
 from localisation import *
 
-server = "https://10.10.10.100:8006"
+server_url = "https://10.10.10.100:8006"
 auth = {'username': "root@pam", 'password': "YOUR_PASSWORD"}
 message = EN  # Localisation (RU, EN, GR)
 
